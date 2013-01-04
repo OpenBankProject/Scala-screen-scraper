@@ -82,6 +82,12 @@
       <version>2.0.M4</version>
       <scope>test</scope>
     </dependency>
+    <!-- for scala docco, run with "mvn cx:docco" -->
+    <dependency>
+      <groupId>ru.circumflex</groupId>
+      <artifactId>circumflex-docco</artifactId>
+      <version>2.0</version>
+    </dependency>
     <!-- for LiftConsole -->
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -248,6 +254,11 @@
             <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
           </classpathContainers>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>ru.circumflex</groupId>
+        <artifactId>maven-cx-plugin</artifactId>
+        <version>2.0</version>
       </plugin>
     </plugins>
   </build>
