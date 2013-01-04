@@ -10,7 +10,9 @@ package com.tesobe.obp_importer.model
 case class AccountConfig(
   bank: String,
   account: String,
-  pindata: String)
+  pindata: String) {
+  def toShortString = "AccountConfig(" + bank + ", " + account + ", ...)"
+}
 
 /**
  * Holds the transaction data that is to be pushed to the OBP API.

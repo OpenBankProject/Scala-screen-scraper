@@ -13,7 +13,7 @@ object Importer extends Loggable {
   def doImports = {
     logger.info("running importer")
 
-    // try to get a list of files
+    /*! Get a list of all files in the configured directory. */
     val confDir = Props.get("importer.confdir", "/var/local/obp_importer")
     val files: Seq[File] = tryo {
       new File(confDir).listFiles
@@ -29,7 +29,9 @@ object Importer extends Loggable {
     }
     files.foreach(f => logger.info("found config file: " + f))
 
-    // try to parse json from files
+    /*! Loop over all files in the configured directory, parse their as JSON
+        and try to convert it into an instance of AccountConfig case class.
+        Skip files that could not be converted this way. */
     implicit val formats = DefaultFormats
     val configs: Seq[AccountConfig] = files.map(f => {
       val objBox = tryo {
@@ -47,6 +49,52 @@ object Importer extends Loggable {
       }
       objBox
     }).flatten
+
+    /*! Loop over all AccountConfig objects that could be read from the
+        JSON files and see whether we have an appropriate method to get
+        a list of transactions for the bank code in that AccountConfig.
+        This could be, say, a screen scraper or an HBCI connector.
+        Skip configurations that have no matching method. */
+    val usableAccounts = configs.map(account => {
+      // associate the correct getTransactions method to each account
+      val getTransactionsFun: Box[AccountConfig => Seq[OBPTransaction]] = account.bank match {
+        case "10010010" | // Postbank Berlin
+          // and others ...
+          "20010020" => // Postbank Hamburg
+          logger.debug("selecting Postbank screen scraper for bank code " + account.toShortString)
+          Full(PostbankScreenScraper.getTransactions _)
+        /*case "43060967" =>
+          logger.info("selecting GLS screen scraper for bank code " + account.bank)
+          Empty*/
+        case _ =>
+          logger.warn("no handler known for " + account.toShortString)
+          Empty
+      }
+      getTransactionsFun.map((account, _))
+    }).flatten
+
+    /*! Actually call the determined getTransactions function for each
+        AccountConfig. */
+    usableAccounts.foreach {
+      case (account, getTransactionsFun) => {
+        logger.info("getting transactions for "+account.toShortString)
+        // get transactions for this account
+        val transactions = tryo {
+          getTransactionsFun(account)
+        } match {
+          case Full(list) =>
+            list
+          case Failure(msg, ex, _) =>
+            logger.error("failed getting transactions for "+account.toShortString+": "+msg)
+            Nil
+          case Empty =>
+            logger.error("failed getting transactions for "+account.toShortString)
+            Nil
+        }
+        // send transactions to API
+        // TODO
+      }
+    }
 
     sys.exit(0)
   }
