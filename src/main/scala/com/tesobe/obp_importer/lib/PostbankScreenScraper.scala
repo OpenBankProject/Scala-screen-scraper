@@ -1,14 +1,17 @@
 package com.tesobe.obp_importer.lib;
 
+import java.io.StringReader
+import scala.collection.JavaConversions
 import org.openqa.selenium.WebDriver
 import org.scalatest.time._
 import org.scalatest.selenium._
 import net.liftweb.util.Helpers._
 import net.liftweb.common._
 import net.liftweb.util.Props
-import com.tesobe.obp_importer.model._
 import dispatch._
 import com.ning.http.client.Cookie
+import au.com.bytecode.opencsv.CSVReader
+import com.tesobe.obp_importer.model._
 
 object PostbankScreenScraper extends Firefox with Loggable {
 
@@ -18,7 +21,6 @@ object PostbankScreenScraper extends Firefox with Loggable {
       val loginPage = "https://banking.postbank.de/rai/login"
       logger.debug("going to " + loginPage)
       goTo(loginPage)
-      logger.debug("h1: " + findAll(XPathQuery("//h1")).map(_.text).mkString(", "))
 
       /*! Fill in the login details */
       logger.debug("fill in login details")
@@ -28,18 +30,16 @@ object PostbankScreenScraper extends Firefox with Loggable {
       pwField.clear()
       pwField.sendKeys("***") // TODO: real PIN
       click on XPathQuery("""//button[@type='submit']""")
-      logger.debug("h1: " + findAll(XPathQuery("//h1")).map(_.text).mkString(", "))
 
       /*! Open the account details */
       logger.debug("open account details")
       val alleUmsaetzeXpath = "//div[@class='accordion-panel-cn']//div[@class='table-ft']//a"
       click on XPathQuery(alleUmsaetzeXpath)
-      logger.debug("opened account details")
       Thread.sleep(2000)
 
       /*! Download the CSV file. Since downloading with Selenium is a
           pain, we create a dispatch request, insert the cookie data from
-          Postbank and query the already-known URL */
+          Postbank and query the already-known URL. */
       logger.debug("download CSV file")
       val csvUrl = "https://banking.postbank.de/rai/?wicket:interface=:3:umsatzauskunftContainer:umsatzauskunftpanel:panel:form:umsatzanzeigeGiro:umsatzaktionen:umsatzanzeigeUndFilterungDownloadlinksPanel:csvHerunterladen::IResourceListener::"
       val browserCookie = cookie("JSESSIONID")
@@ -47,7 +47,7 @@ object PostbankScreenScraper extends Firefox with Loggable {
       // see <http://dispatch.databinder.net/Bargaining+with+promises.html>
       val dlReq = url(csvUrl).addCookie(dlCookie)
       val request = Http(dlReq OK as.Bytes)
-      val data = for (d <- request) yield new String(d, "ISO-8859-15")
+      val data = for (d <- request) yield new String(d, "WINDOWS-1252")
       data()
     }
     close()
@@ -59,10 +59,78 @@ object PostbankScreenScraper extends Firefox with Loggable {
       case _ =>
         logger.error("got an error")
     }
+
+    /*! Parse the CSV file. */
     csvDataBox.map(csvData => {
-      // TODO
-    })
-    Nil
+      /* Extract the header information. Header looks like:
+       * Umsatzauskunft - gebuchte Umsätze
+	   * Name;MUSIC PICTURES LIMITED
+       * BLZ;10010010
+       * Kontonummer;0580591101
+       * IBAN;DE40100100100580591101
+       * Aktueller Kontostand;***
+       * Summe vorgemerkter Umsätze;***
+       */
+      val reader = new CSVReader(new StringReader(csvData), ';')
+      val lines = JavaConversions.collectionAsScalaIterable(reader.readAll).toList
+      val csvTitle = lines(0)(0)
+      logger.debug("csvTitle: " + csvTitle)
+      val myName = lines(1)(1)
+      logger.debug("myName: " + myName)
+      val myBankCode = lines(2)(1)
+      logger.debug("myBankCode: " + myBankCode)
+      val myAccountNumber = lines(3)(1)
+      logger.debug("myAccountNumber: " + myAccountNumber)
+      val myIBAN = lines(4)(1)
+      logger.debug("myIBAN: " + myIBAN)
+      val currentBalance = computeAmount(lines(5)(1)).amount
+      logger.debug("currentBalance: " + currentBalance)
+      val myBank = OBPBank(myIBAN, account.bank, "POSTBANK")
+      val myAccount = OBPAccount(myName, myAccountNumber, "current", myBank)
+      /*! Loop over the remaining lines of the CSV and create
+          OBPTransactions from them. */
+      lines.slice(9, lines.size).map(line => {
+        csvLineToTransaction(line.toList, myAccount)
+      }).flatten
+    }).getOrElse(Nil)
   }
 
+  private def computeAmount(n: String): OBPAmount = {
+    def processNumber(n: String): Double = {
+      asDouble(n.trim().filterNot(_ == '.').replace(",", ".")).getOrElse(0.0)
+    }
+    OBPAmount(n.takeRight(1), processNumber(n.take(n.size - 1)).toFloat)
+  }
+
+  private def formatDate(s: String): String = {
+    // in: "01.11.2012", out: "2012-11-01T00:00:00.001Z")
+    s.split('.').reverse.mkString("-") + "T00:00:00.001Z"
+  }
+
+  def csvLineToTransaction(line: List[String], myAccount: OBPAccount): Box[OBPTransaction] = {
+    logger.debug("processing: " + line)
+    /* a line looks like
+     * "Buchungstag";"Wertstellung";"Umsatzart";"Buchungsdetails";"Auftraggeber";"Empfänger";"Betrag ()";"Saldo ()"
+     * "04.01.2013";"04.01.2013";"Lastschrift";"RECHNUNGSNR.  R0002558085 REGISTRATION ROBOT - SERVER ";"MUSIC PICTURES LIMITED";"HETZNER ONLINE AG";"-123,45 €";"12.345,67 €"
+     */
+    line match {
+      case day1 :: day2 :: transactType :: description ::
+        sender :: receiver :: value :: balance :: Nil =>
+        // collect all information about the other account involved in this transaction
+        val otherName =
+          if (sender == myAccount.holder) receiver
+          else sender
+        val otherAccount = OBPAccount(otherName, "", "", OBPBank("", "", ""))
+        // collect all monetary information about this transaction
+        val details = OBPDetails("", transactType,
+          OBPDate(formatDate(day1)), OBPDate(formatDate(day2)),
+          computeAmount(balance), computeAmount(value))
+        val t = OBPTransaction(myAccount, otherAccount, details, description)
+        logger.info(t)
+        Full(t)
+      case _ =>
+        logger.warn("line is not well-formed, skipping")
+        Empty
+    }
+  }
 }

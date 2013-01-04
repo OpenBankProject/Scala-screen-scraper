@@ -91,6 +91,7 @@ object Importer extends Loggable {
             logger.error("failed getting transactions for "+account.toShortString)
             Nil
         }
+        logger.info("received transactions")
         // send transactions to API
         // TODO
       }

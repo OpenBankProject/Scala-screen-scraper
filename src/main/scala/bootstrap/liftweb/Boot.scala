@@ -23,7 +23,7 @@ class Boot extends Loggable {
     }
 
     // start importer
-    Schedule.schedule(Importer.doImports _, 5 seconds)
+    Schedule.schedule(Importer.doImports _, 1 seconds)
     logger.info("boot complete")
   }
 }
