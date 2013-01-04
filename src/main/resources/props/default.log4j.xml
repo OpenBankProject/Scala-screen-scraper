@@ -9,8 +9,13 @@
   <logger name="code.dispatch">
     <level value="info" />
   </logger>
+  <!-- set our own logger to debug -->
+  <logger name="com.tesobe.obp_importer">
+    <level value="debug" />
+  </logger>
+  <!-- default logging -->
   <root>
-    <priority value ="debug"/>
+    <priority value ="info"/>
     <appender-ref ref="appender"/>
   </root>
 </log4j:configuration>
