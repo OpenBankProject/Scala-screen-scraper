@@ -86,6 +86,12 @@
       <artifactId>opencsv</artifactId>
       <version>2.1</version>
     </dependency>
+    <!-- to decrypt secret data -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpg-jdk15on</artifactId>
+      <version>1.47</version>
+    </dependency>
     <!-- for scala docco, run with "mvn cx:docco" -->
     <dependency>
       <groupId>ru.circumflex</groupId>
@@ -120,7 +126,23 @@
     <sourceDirectory>src/main/scala</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
-      <plugin>
+		<plugin>
+		  <!-- add src/main/java to source dirs -->
+		  <groupId>org.codehaus.mojo</groupId>
+		  <artifactId>build-helper-maven-plugin</artifactId>
+		  <executions>
+		    <execution>
+		      <phase>generate-sources</phase>
+		      <goals><goal>add-source</goal></goals>
+		      <configuration>
+		        <sources>
+		          <source>src/main/java</source>
+		        </sources>
+		      </configuration>
+		    </execution>
+		  </executions>
+		</plugin>
+    <plugin>
         <!--  disable surefire (to allow the scalatest plugin to work) -->
   		<groupId>org.apache.maven.plugins</groupId>
   		<artifactId>maven-surefire-plugin</artifactId>
