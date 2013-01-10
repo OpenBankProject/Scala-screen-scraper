@@ -12,44 +12,50 @@ import dispatch._
 import com.ning.http.client.Cookie
 import au.com.bytecode.opencsv.CSVReader
 import com.tesobe.obp_importer.model._
+import bootstrap.liftweb.Boot
 
-object PostbankScreenScraper extends Firefox with Loggable {
+object PostbankScreenScraper extends Firefox with Loggable with CryptoHandler {
 
   def getTransactions(account: AccountConfig): Seq[OBPTransaction] = {
-    val csvDataBox = tryo {
-      /*! Go to login page of Postbank */
-      val loginPage = "https://banking.postbank.de/rai/login"
-      logger.debug("going to " + loginPage)
-      goTo(loginPage)
+    /*! First, decrypt the encrypted login secret for this account. */
+    val pinBox: Box[String] = decryptPin(account.pindata, Importer.passphrase)
+    /*! If successful, start the browser and get the CSV file. */
+    val csvDataBox: Box[String] = pinBox.flatMap(pin => {
+      tryo {
+        /*! Go to login page of Postbank */
+        val loginPage = "https://banking.postbank.de/rai/login"
+        logger.debug("going to " + loginPage)
+        goTo(loginPage)
 
-      /*! Fill in the login details */
-      logger.debug("fill in login details")
-      textField("id1").value = account.account
-      // NB. There's no passwordField, so we do this "manually"
-      val pwField = IdQuery("pin-number").webElement
-      pwField.clear()
-      pwField.sendKeys("***") // TODO: real PIN
-      click on XPathQuery("""//button[@type='submit']""")
+        /*! Fill in the login details */
+        logger.debug("fill in login details")
+        textField("id1").value = account.account
+        // NB. There's no passwordField, so we do this "manually"
+        val pwField = IdQuery("pin-number").webElement
+        pwField.clear()
+        pwField.sendKeys(pin)
+        click on XPathQuery("""//button[@type='submit']""")
 
-      /*! Open the account details */
-      logger.debug("open account details")
-      val alleUmsaetzeXpath = "//div[@class='accordion-panel-cn']//div[@class='table-ft']//a"
-      click on XPathQuery(alleUmsaetzeXpath)
-      Thread.sleep(2000)
+        /*! Open the account details */
+        logger.debug("open account details")
+        val alleUmsaetzeXpath = "//div[@class='accordion-panel-cn']//div[@class='table-ft']//a"
+        click on XPathQuery(alleUmsaetzeXpath)
+        Thread.sleep(2000)
 
-      /*! Download the CSV file. Since downloading with Selenium is a
-          pain, we create a dispatch request, insert the cookie data from
-          Postbank and query the already-known URL. */
-      logger.debug("download CSV file")
-      val csvUrl = "https://banking.postbank.de/rai/?wicket:interface=:3:umsatzauskunftContainer:umsatzauskunftpanel:panel:form:umsatzanzeigeGiro:umsatzaktionen:umsatzanzeigeUndFilterungDownloadlinksPanel:csvHerunterladen::IResourceListener::"
-      val browserCookie = cookie("JSESSIONID")
-      val dlCookie = new Cookie(browserCookie.domain, browserCookie.name, browserCookie.value, browserCookie.path, 10000, browserCookie.secure)
-      // see <http://dispatch.databinder.net/Bargaining+with+promises.html>
-      val dlReq = url(csvUrl).addCookie(dlCookie)
-      val request = Http(dlReq OK as.Bytes)
-      val data = for (d <- request) yield new String(d, "WINDOWS-1252")
-      data()
-    }
+        /*! Download the CSV file. Since downloading with Selenium is a
+            pain, we create a dispatch request, insert the cookie data from
+            Postbank and query the already-known URL. */
+        logger.debug("download CSV file")
+        val csvUrl = "https://banking.postbank.de/rai/?wicket:interface=:3:umsatzauskunftContainer:umsatzauskunftpanel:panel:form:umsatzanzeigeGiro:umsatzaktionen:umsatzanzeigeUndFilterungDownloadlinksPanel:csvHerunterladen::IResourceListener::"
+        val browserCookie = cookie("JSESSIONID")
+        val dlCookie = new Cookie(browserCookie.domain, browserCookie.name, browserCookie.value, browserCookie.path, 10000, browserCookie.secure)
+        // see <http://dispatch.databinder.net/Bargaining+with+promises.html>
+        val dlReq = url(csvUrl).addCookie(dlCookie)
+        val request = Http(dlReq OK as.Bytes)
+        val data = for (d <- request) yield new String(d, "WINDOWS-1252")
+        data()
+      }
+    })
     close()
     csvDataBox match {
       case Full(data) =>
@@ -108,7 +114,6 @@ object PostbankScreenScraper extends Firefox with Loggable {
   }
 
   def csvLineToTransaction(line: List[String], myAccount: OBPAccount): Box[OBPTransaction] = {
-    logger.debug("processing: " + line)
     /* a line looks like
      * "Buchungstag";"Wertstellung";"Umsatzart";"Buchungsdetails";"Auftraggeber";"Empfänger";"Betrag ()";"Saldo ()"
      * "04.01.2013";"04.01.2013";"Lastschrift";"RECHNUNGSNR.  R0002558085 REGISTRATION ROBOT - SERVER ";"MUSIC PICTURES LIMITED";"HETZNER ONLINE AG";"-123,45 €";"12.345,67 €"
@@ -126,10 +131,10 @@ object PostbankScreenScraper extends Firefox with Loggable {
           OBPDate(formatDate(day1)), OBPDate(formatDate(day2)),
           computeAmount(balance), computeAmount(value))
         val t = OBPTransaction(myAccount, otherAccount, details, description)
-        logger.info(t)
+        logger.debug(t)
         Full(t)
       case _ =>
-        logger.warn("line is not well-formed, skipping")
+        logger.warn("line '" + line + "' is not well-formed, skipping")
         Empty
     }
   }

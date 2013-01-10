@@ -10,6 +10,8 @@ import com.tesobe.obp_importer.model.AccountConfig
 import com.tesobe.obp_importer.model.OBPTransaction
 
 object Importer extends Loggable {
+  var passphrase = ""
+
   def doImports = {
     logger.info("running importer")
 
@@ -67,7 +69,7 @@ object Importer extends Loggable {
           logger.info("selecting GLS screen scraper for bank code " + account.bank)
           Empty*/
         case _ =>
-          logger.warn("no handler known for " + account.toShortString)
+          logger.warn("no handler known for " + account.toShortString + ", skipping")
           Empty
       }
       getTransactionsFun.map((account, _))
@@ -77,7 +79,7 @@ object Importer extends Loggable {
         AccountConfig. */
     usableAccounts.foreach {
       case (account, getTransactionsFun) => {
-        logger.info("getting transactions for "+account.toShortString)
+        logger.info("getting transactions for " + account.toShortString)
         // get transactions for this account
         val transactions = tryo {
           getTransactionsFun(account)
@@ -85,13 +87,13 @@ object Importer extends Loggable {
           case Full(list) =>
             list
           case Failure(msg, ex, _) =>
-            logger.error("failed getting transactions for "+account.toShortString+": "+msg)
+            logger.error("failed getting transactions for " + account.toShortString + ": " + msg)
             Nil
           case Empty =>
-            logger.error("failed getting transactions for "+account.toShortString)
+            logger.error("failed getting transactions for " + account.toShortString)
             Nil
         }
-        logger.info("received transactions")
+        logger.info("received " + transactions.size + " transactions")
         // send transactions to API
         // TODO
       }
