@@ -63,11 +63,11 @@ object Importer extends Loggable {
         case "10010010" | // Postbank Berlin
           // and others ...
           "20010020" => // Postbank Hamburg
-          logger.debug("selecting Postbank screen scraper for bank code " + account.toShortString)
+          logger.debug("selecting Postbank screen scraper for " + account.toShortString)
           Full(PostbankScreenScraper.getTransactions _)
-        /*case "43060967" =>
-          logger.info("selecting GLS screen scraper for bank code " + account.bank)
-          Empty*/
+        case "43060967" =>
+          logger.info("selecting GLS screen scraper for " + account.toShortString)
+          Full(GlsScreenScraper.getTransactions _)
         case _ =>
           logger.warn("no handler known for " + account.toShortString + ", skipping")
           Empty
@@ -85,6 +85,7 @@ object Importer extends Loggable {
           getTransactionsFun(account)
         } match {
           case Full(list) =>
+            logger.info("received " + list.size + " transactions")
             list
           case Failure(msg, ex, _) =>
             logger.error("failed getting transactions for " +
@@ -95,12 +96,7 @@ object Importer extends Loggable {
               account.toShortString)
             Nil
         }
-        logger.info("received " + transactions.size + " transactions")
-        (account, transactions)
-      }
-    } foreach {
-      /*! Send transactions to the backend. */
-      case (account, transactions) => {
+        /*! Send transactions to the backend. */
         logger.info("inserting transactions for " + account.toShortString)
         val transactionHulls = transactions.map(OBPTransactionWrapper(_))
         val json = compact(render(Extraction.decompose(transactionHulls)))
