@@ -20,8 +20,7 @@ case class AccountConfig(
 case class OBPTransaction(
   this_account: OBPAccount,
   other_account: OBPAccount,
-  details: OBPDetails,
-  other_data: String)
+  details: OBPDetails)
 
 case class OBPAccount(
   holder: String,
@@ -40,7 +39,8 @@ case class OBPDetails(
   posted: OBPDate,
   completed: OBPDate,
   new_balance: OBPAmount,
-  value: OBPAmount)
+  value: OBPAmount,
+  other_data: String)
 
 case class OBPDate(`$dt`: String)
 

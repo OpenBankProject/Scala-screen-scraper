@@ -91,8 +91,15 @@ object PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
       logger.debug("myIBAN: " + myIBAN)
       val currentBalance = computeAmount(lines(5)(1)).amount
       logger.debug("currentBalance: " + currentBalance)
-      val myBank = OBPBank(myIBAN, account.bank, "POSTBANK")
-      val myAccount = OBPAccount(myName, myAccountNumber, "current", myBank)
+      val myBank = OBPBank(
+        IBAN = myIBAN,
+        national_identifier = account.bank,
+        name = "POSTBANK")
+      val myAccount = OBPAccount(
+        holder = myName,
+        number = myAccountNumber,
+        kind = "current",
+        bank = myBank)
       /*! Loop over the remaining lines of the CSV and create
           OBPTransactions from them. */
       lines.slice(9, lines.size).map(line => {
@@ -127,12 +134,24 @@ object PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
         val otherName =
           if (sender == myAccount.holder) receiver
           else sender
-        val otherAccount = OBPAccount(otherName, "", "", OBPBank("", "", ""))
+        val otherAccount = OBPAccount(
+          holder = otherName,
+          number = "",
+          kind = "",
+          bank = OBPBank("", "", ""))
         // collect all monetary information about this transaction
-        val details = OBPDetails("", transactType,
-          OBPDate(formatDate(day1)), OBPDate(formatDate(day2)),
-          computeAmount(balance), computeAmount(value))
-        val t = OBPTransaction(myAccount, otherAccount, details, description)
+        val details = OBPDetails(
+          type_en = "",
+          type_de = transactType,
+          posted = OBPDate(formatDate(day1)),
+          completed = OBPDate(formatDate(day2)),
+          new_balance = computeAmount(balance),
+          value = computeAmount(value),
+          other_data = description)
+        val t = OBPTransaction(
+          this_account = myAccount,
+          other_account = otherAccount,
+          details = details)
         logger.debug(t)
         Full(t)
       case _ =>
