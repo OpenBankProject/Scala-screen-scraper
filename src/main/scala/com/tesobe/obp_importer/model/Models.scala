@@ -46,5 +46,5 @@ case class OBPDate(`$dt`: String)
 
 case class OBPAmount(
   currency: String,
-  amount: Float)
+  amount: String)
 

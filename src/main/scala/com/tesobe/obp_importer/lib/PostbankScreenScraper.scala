@@ -102,10 +102,12 @@ object PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
   }
 
   private def computeAmount(n: String): OBPAmount = {
-    def processNumber(n: String): Double = {
-      asDouble(n.trim().filterNot(_ == '.').replace(",", ".")).getOrElse(0.0)
+    // we process this as a string 1. in order to preserve the number
+    //  of digits and 2. because the server expects it like this
+    def processNumber(n: String): String = {
+      n.trim().filterNot(_ == '.').replace(",", ".")
     }
-    OBPAmount(n.takeRight(1), processNumber(n.take(n.size - 1)).toFloat)
+    OBPAmount(n.takeRight(1), processNumber(n.take(n.size - 1)))
   }
 
   private def formatDate(s: String): String = {
