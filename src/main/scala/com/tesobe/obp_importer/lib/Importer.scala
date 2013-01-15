@@ -4,6 +4,7 @@ import java.io.File
 import scala.io.Source
 import dispatch._
 import net.liftweb.common._
+import net.liftweb.util.Schedule
 import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import net.liftweb.json._
@@ -12,7 +13,7 @@ import com.tesobe.obp_importer.model._
 object Importer extends Loggable {
   var passphrase = ""
 
-  def doImports = {
+  def doImports: Unit = {
     logger.info("running importer")
 
     /*! Get a list of all files in the configured directory. */
@@ -115,6 +116,6 @@ object Importer extends Loggable {
       }
     }
 
-    sys.exit(0)
+    Schedule.schedule(doImports _, 1 hour)
   }
 }

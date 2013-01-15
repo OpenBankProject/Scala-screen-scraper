@@ -5,7 +5,7 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import javax.mail.Authenticator
 import javax.mail.PasswordAuthentication
-import com.tesobe.obp_importer.lib.Importer
+import net.liftweb.http.LiftRules
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -31,11 +31,7 @@ class Boot extends Loggable {
       logger.warn("private key location (importer.keyfile) not set in props file!")
       "key.gpg"
     })
-    Importer.passphrase =
-      new String(System.console().readPassword("enter passphrase for '" + keyfile + "': "))
 
-    // start importer
-    Schedule.schedule(Importer.doImports _, 1 seconds)
-    logger.info("boot complete")
+    LiftRules.addToPackages("com.tesobe.obp_importer")
   }
 }
