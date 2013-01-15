@@ -13,6 +13,10 @@ import com.tesobe.obp_importer.lib.Importer
  */
 class Boot extends Loggable {
   def boot {
+    // configure logging for HtmlUnit
+    System.setProperty("org.apache.commons.logging.Log",
+      "org.apache.commons.logging.impl.Log4JLogger");
+
     // set up email auth
     Mailer.authenticator = for {
       user <- Props.get("mail.user")

@@ -9,6 +9,10 @@
   <logger name="code.dispatch">
     <level value="info" />
   </logger>
+  <!-- get rid of HTML unit logging spam -->
+  <logger name="com.gargoylesoftware.htmlunit">
+    <level value="fatal" />
+  </logger>
   <!-- set our own logger to debug -->
   <logger name="com.tesobe.obp_importer">
     <level value="debug" />
