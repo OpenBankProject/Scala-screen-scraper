@@ -8,10 +8,11 @@ package com.tesobe.obp_importer.model
  * @param pinData the encrypted PIN for this account
  */
 case class AccountConfig(
+  holder: String,
   bank: String,
   account: String,
   pindata: String) {
-  def toShortString = "AccountConfig(" + bank + ", " + account + ", ...)"
+  def toShortString = "AccountConfig(" + holder + ", " + bank + ", " + account + ", ...)"
 }
 
 /**
