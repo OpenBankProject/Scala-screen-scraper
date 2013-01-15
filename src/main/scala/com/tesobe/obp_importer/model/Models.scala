@@ -17,6 +17,9 @@ case class AccountConfig(
 /**
  * Holds the transaction data that is to be pushed to the OBP API.
  */
+case class OBPTransactionWrapper(
+  obp_transaction: OBPTransaction)
+
 case class OBPTransaction(
   this_account: OBPAccount,
   other_account: OBPAccount,
@@ -47,5 +50,7 @@ case class OBPDate(`$dt`: String)
 
 case class OBPAmount(
   currency: String,
-  amount: String)
+  amount: String) {
+  override def toString = "OBPAmount(" + currency + ",***)"
+}
 

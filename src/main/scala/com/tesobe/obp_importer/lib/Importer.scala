@@ -2,12 +2,12 @@ package com.tesobe.obp_importer.lib
 
 import java.io.File
 import scala.io.Source
+import dispatch._
 import net.liftweb.common._
 import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import net.liftweb.json._
-import com.tesobe.obp_importer.model.AccountConfig
-import com.tesobe.obp_importer.model.OBPTransaction
+import com.tesobe.obp_importer.model._
 
 object Importer extends Loggable {
   var passphrase = ""
@@ -77,7 +77,7 @@ object Importer extends Loggable {
 
     /*! Actually call the determined getTransactions function for each
         AccountConfig. */
-    usableAccounts.foreach {
+    usableAccounts.map {
       case (account, getTransactionsFun) => {
         logger.info("getting transactions for " + account.toShortString)
         // get transactions for this account
@@ -87,15 +87,35 @@ object Importer extends Loggable {
           case Full(list) =>
             list
           case Failure(msg, ex, _) =>
-            logger.error("failed getting transactions for " + account.toShortString + ": " + msg)
+            logger.error("failed getting transactions for " +
+              account.toShortString + ": " + msg)
             Nil
           case Empty =>
-            logger.error("failed getting transactions for " + account.toShortString)
+            logger.error("failed getting transactions for " +
+              account.toShortString)
             Nil
         }
         logger.info("received " + transactions.size + " transactions")
-        // send transactions to API
-        // TODO
+        (account, transactions)
+      }
+    } foreach {
+      /*! Send transactions to the backend. */
+      case (account, transactions) => {
+        logger.info("inserting transactions for " + account.toShortString)
+        val transactionHulls = transactions.map(OBPTransactionWrapper(_))
+        val json = compact(render(Extraction.decompose(transactionHulls)))
+        // build a request
+        val req = url(Props.get("importer.apiurl", "http://localhost:8080") +
+          "/api/transactions").POST.
+          setHeader("Content-Type", "application/json; charset=utf-8").
+          setBody(json.getBytes("UTF-8")) // NB. we have to give the encoding
+        val result = Http(req OK as.String).either
+        result() match {
+          case Left(err) =>
+            logger.error("got an error while posting to OBP: " + err.getMessage)
+          case Right(res) =>
+            logger.info("posting to OBP succeeded")
+        }
       }
     }
 
