@@ -14,7 +14,7 @@ import au.com.bytecode.opencsv.CSVReader
 import com.tesobe.obp_importer.model._
 import bootstrap.liftweb.Boot
 
-object PostbankScreenScraper extends Firefox with Loggable with CryptoHandler {
+object PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
 
   def getTransactions(account: AccountConfig): Seq[OBPTransaction] = {
     /*! First, decrypt the encrypted login secret for this account. */
