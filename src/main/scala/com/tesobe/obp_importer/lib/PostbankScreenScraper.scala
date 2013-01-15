@@ -147,7 +147,8 @@ object PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
           completed = OBPDate(formatDate(day2)),
           new_balance = computeAmount(balance),
           value = computeAmount(value),
-          other_data = description)
+          label = description,
+          other_data = "")
         val t = OBPTransaction(
           this_account = myAccount,
           other_account = otherAccount,

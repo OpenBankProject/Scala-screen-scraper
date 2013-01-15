@@ -40,6 +40,7 @@ case class OBPDetails(
   completed: OBPDate,
   new_balance: OBPAmount,
   value: OBPAmount,
+  label: String,
   other_data: String)
 
 case class OBPDate(`$dt`: String)
