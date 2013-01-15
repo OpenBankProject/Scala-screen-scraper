@@ -27,10 +27,10 @@ class Boot extends Loggable {
     }
 
     // ask for the passphrase
-    val keyfile = Props.get("importer.keyfile", {
+    val keyfile = Props.get("importer.keyfile") getOrElse {
       logger.warn("private key location (importer.keyfile) not set in props file!")
       "key.gpg"
-    })
+    }
 
     LiftRules.addToPackages("com.tesobe.obp_importer")
   }
