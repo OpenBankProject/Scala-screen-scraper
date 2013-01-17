@@ -65,10 +65,12 @@ object Importer extends Loggable {
           // and others ...
           "20010020" => // Postbank Hamburg
           logger.debug("selecting Postbank screen scraper for " + account.toShortString)
-          Full(PostbankScreenScraper.getTransactions _)
+          val s = new PostbankScreenScraper
+          Full(s.getTransactions _)
         case "43060967" =>
           logger.info("selecting GLS screen scraper for " + account.toShortString)
-          Full(GlsScreenScraper.getTransactions _)
+          val s = new GlsScreenScraper
+          Full(s.getTransactions _)
         case _ =>
           logger.warn("no handler known for " + account.toShortString + ", skipping")
           Empty

@@ -14,7 +14,9 @@ import au.com.bytecode.opencsv.CSVReader
 import com.tesobe.obp_importer.model._
 import bootstrap.liftweb.Boot
 
-object GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
+class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
+  // NB. This used to be an object instead of a class, but then the
+  //  call to close() makes it unusable afterwards
 
   def getTransactions(account: AccountConfig): Seq[OBPTransaction] = {
     /*! First, decrypt the encrypted login secret for this account. */
