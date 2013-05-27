@@ -103,7 +103,7 @@ class PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
         national_identifier = account.bank,
         name = "POSTBANK")
       val myAccount = OBPAccount(
-        holder = myName, // we could also use the account.holder here
+        holder = account.holder,
         number = myAccountNumber,
         kind = "current",
         bank = myBank)
