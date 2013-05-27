@@ -14,9 +14,12 @@ import au.com.bytecode.opencsv.CSVReader
 import com.tesobe.obp_importer.model._
 import bootstrap.liftweb.Boot
 
+
 class PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
   // NB. This used to be an object instead of a class, but then the
   //  call to close() makes it unusable afterwards
+
+  implicit val driver = HtmlUnit.webDriver
 
   def getTransactions(account: AccountConfig): Seq[OBPTransaction] = {
     /*! First, decrypt the encrypted login secret for this account. */
@@ -40,7 +43,7 @@ class PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
 
         /*! Open the account details */
         logger.debug("open account details")
-        val alleUmsaetzeXpath = "//div[@class='accordion-panel-cn']//div[@class='table-ft']//a"
+        val alleUmsaetzeXpath = """//div[@id='nav-global']/ul/li[2]/a"""
         click on XPathQuery(alleUmsaetzeXpath)
         Thread.sleep(2000)
 
@@ -48,7 +51,9 @@ class PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
             pain, we create a dispatch request, insert the cookie data from
             Postbank and query the already-known URL. */
         logger.debug("download CSV file")
-        val csvUrl = "https://banking.postbank.de/rai/?wicket:interface=:3:umsatzauskunftContainer:umsatzauskunftpanel:panel:form:umsatzanzeigeGiro:umsatzaktionen:umsatzanzeigeUndFilterungDownloadlinksPanel:csvHerunterladen::IResourceListener::"
+        //the link to download the CSV file
+        val CSVXpath = """//div[@class='tbl-sales-options-bd']/ul/li[3]/a"""
+        val csvUrl = XPathQuery(CSVXpath).element.attribute("href").getOrElse("")
         val browserCookie = cookie("JSESSIONID")
         val dlCookie = new Cookie(browserCookie.domain, browserCookie.name, browserCookie.value, browserCookie.path, 10000, browserCookie.secure)
         // see <http://dispatch.databinder.net/Bargaining+with+promises.html>
@@ -116,7 +121,9 @@ class PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
     def processNumber(n: String): String = {
       n.trim().filterNot(_ == '.').replace(",", ".")
     }
-    OBPAmount(n.takeRight(1), processNumber(n.take(n.size - 1)))
+    //the currency is by default "EUR" because the original value is the "€" sign
+    //TODO: implement a method to return the ISO 2417 currency code from the currency sign
+    OBPAmount("EUR", processNumber(n.take(n.size - 1)))
   }
 
   private def formatDate(s: String): String = {
