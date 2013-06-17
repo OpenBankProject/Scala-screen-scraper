@@ -143,6 +143,7 @@ class PostbankScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
         val otherName =
           if (sender == myAccount.holder) receiver
           else sender
+
         val otherAccount = OBPAccount(
           holder = otherName,
           number = "",

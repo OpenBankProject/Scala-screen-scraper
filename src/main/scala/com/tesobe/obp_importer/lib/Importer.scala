@@ -104,8 +104,11 @@ object Importer extends Loggable {
         val transactionHulls = transactions.map(OBPTransactionWrapper(_))
         val json = compact(render(Extraction.decompose(transactionHulls)))
         // build a request
-        val req = url(Props.get("importer.apiurl", "http://localhost:8080") +
-          "/api/transactions").POST.
+        val req =
+          url(Props.get("importer.apiurl", "http://localhost:8080") +
+          "/api/transactions"+
+          "?secret=" + Props.get("importer.postSecret","")
+          ).POST.
           setHeader("Content-Type", "application/json; charset=utf-8").
           setBody(json.getBytes("UTF-8")) // NB. we have to give the encoding
         val result = Http(req OK as.String).either
