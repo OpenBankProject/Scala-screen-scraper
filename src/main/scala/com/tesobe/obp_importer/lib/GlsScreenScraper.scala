@@ -31,7 +31,7 @@ class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
 
         /*! Fill in the login details */
         logger.debug("fill in login details")
-        textField("kontonummer").value = account.account
+        textField("vrkennungalias").value = account.username
         // NB. There's no passwordField, so we do this "manually"
         val pwField = IdQuery("pin").webElement
         pwField.clear()

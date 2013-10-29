@@ -9,9 +9,11 @@ package com.tesobe.obp_importer.model
  */
 case class AccountConfig(
   holder: String,
+  username: String,
   bank: String,
   account: String,
-  pindata: String) {
+  pindata: String
+) {
   def toShortString = "AccountConfig(" + holder + ", " + bank + ", " + account + ", ...)"
 }
 
