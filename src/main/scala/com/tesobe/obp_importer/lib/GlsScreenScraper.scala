@@ -13,8 +13,13 @@ import com.ning.http.client.Cookie
 import au.com.bytecode.opencsv.CSVReader
 import com.tesobe.obp_importer.model._
 import bootstrap.liftweb.Boot
+import org.openqa.selenium.htmlunit.HtmlUnitDriver
+import com.gargoylesoftware.htmlunit.BrowserVersion
 
 class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
+  //due to an update in the GLS website, we have to emulate a proper browser
+  implicit val driver = new HtmlUnitDriver(BrowserVersion.CHROME)
+
   // NB. This used to be an object instead of a class, but then the
   //  call to close() makes it unusable afterwards
 
@@ -37,7 +42,7 @@ class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
         pwField.clear()
         pwField.sendKeys(pin)
         // NB. For modern browsers, you'll get <button type="submit" ... /> from GLS
-        click on XPathQuery("""//input[@type='submit']""")
+        clickOn("button_login")
 
         /*! Open the account details */
         logger.debug("open account details")
