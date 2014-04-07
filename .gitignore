@@ -1,0 +1,17 @@
+target/
+key.gpg
+*.class
+*.db
+.DS_Store
+*.scala.orig
+*.log
+.idea
+.settings
+.classpath
+.project
+.cache
+*.props
+target
+src/main/resources/
+src/test/resources/
+configs/
