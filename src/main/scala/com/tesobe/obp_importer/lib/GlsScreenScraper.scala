@@ -46,7 +46,7 @@ class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
 
         /*! Open the account details */
         logger.debug("open account details")
-        val alleUmsaetzeXpath = "//span[contains(., '" + account.account + "')]"
+        val alleUmsaetzeXpath = "//a[contains(., '" + account.account + "')]"
         click on XPathQuery(alleUmsaetzeXpath)
         Thread.sleep(2000)
 
@@ -54,14 +54,34 @@ class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
             pain, we create a dispatch request, insert the cookie data from
             GLS and query the already-known URL. */
         logger.debug("download CSV file")
-        val csvUrl = XPathQuery("//a[@title='Angezeigte Umsätze in Datei exportieren']").
-          findElement.flatMap(_.attribute("href")).getOrElse("#")
+        val csvUrl = "https://www.gls-online-filiale.de" + XPathQuery("//form[@name='form1']").
+          findElement.flatMap(_.attribute("action")).getOrElse("#")
         val browserCookie = cookie("JSESSIONID")
+        val lbCookie = cookie("LBSESSION")
         val dlCookie = new Cookie(browserCookie.domain, browserCookie.name, browserCookie.value, browserCookie.path, 10000, browserCookie.secure)
+        val dlCookie2 = new Cookie(lbCookie.domain, lbCookie.name, lbCookie.value, lbCookie.path, 10000, lbCookie.secure)
         // see <http://dispatch.databinder.net/Bargaining+with+promises.html>
-        val dlReq = url(csvUrl).addCookie(dlCookie)
-        val request = Http(dlReq OK as.Bytes)
-        val data = for (d <- request) yield new String(d, "ISO-8859-1")
+        val dlReq = url(csvUrl)
+          .addCookie(dlCookie)
+          .addCookie(dlCookie2)
+          .setHeader("Content-Type", "application/x-www-form-urlencoded")
+          // had to use a "standard" user agent
+          .setHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36")
+          .addParameter("idKontoGewaehlt","0")
+          .addParameter("nrRadioBoxSelektion","1")
+          .addParameter("idZeitraumGewaehlt","0")
+          .addParameter("umsatzSucheVO.betrBetragVon","")
+          .addParameter("umsatzSucheVO.betrBetragBis","")
+          .addParameter("holeUmsaetzeInVO.txtSuch","")
+          .addParameter("kzCollapsed","j")
+          .addParameter("tableSort_Table_1","")
+          .addParameter("event___export","Exportieren")
+          .POST
+
+        val response = Http(dlReq OK as.String)
+        val data = for (body <- response) yield {
+            body
+          }
         data()
       }
     })
