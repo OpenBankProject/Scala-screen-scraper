@@ -150,14 +150,12 @@ class GlsScreenScraper extends HtmlUnit with Loggable with CryptoHandler {
         val description = (desc1 :: desc2 :: desc3 :: desc4 :: desc5 :: desc6 :: desc7 ::
           desc8 :: desc9 :: desc10 :: desc11 :: desc12 :: desc13 :: desc14 :: Nil) mkString "\n" trim
         val details = OBPDetails(
-          type_en = "",
-          type_de = transactType,
+          kind = transactType,
           posted = OBPDate(formatDate(day1)),
           completed = OBPDate(formatDate(day2)),
           new_balance = computeAmount(balance, currency),
           value = computeAmount(value, currency),
-          label = description,
-          other_data = "")
+          label = description)
         val t = OBPTransaction(
           this_account = myAccount,
           other_account = otherAccount,
