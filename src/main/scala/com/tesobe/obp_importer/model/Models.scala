@@ -34,20 +34,19 @@ case class OBPAccount(
   kind: String,
   bank: OBPBank)
 
+//IBAN is in here rather than the OBPAccount for legacy reasons
 case class OBPBank(
   IBAN: String,
   national_identifier: String,
   name: String)
 
 case class OBPDetails(
-  type_en: String,
-  type_de: String,
+  kind: String,
   posted: OBPDate,
   completed: OBPDate,
   new_balance: OBPAmount,
   value: OBPAmount,
-  label: String,
-  other_data: String)
+  label: String)
 
 case class OBPDate(`$dt`: String)
 
