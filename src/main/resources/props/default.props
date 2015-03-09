@@ -1,3 +1,11 @@
-# Properties in this file will be read when running in dev mode
-importer.confdir=configs
-#importer.apiurl=http://localhost:8080
+#directory containing json conf files for accounts to scrape
+importer.confdir=/path/to/conf/dir
+
+#Base url (the bit before the /api/transactions) of the OBP-API's "add transactions" call
+importer.apiurl=http://127.0.0.1:8080/obp_transactions_saver
+
+#location of the private key used to decrypt the configuration files in importer.confdir
+importer.keyfile=/path/to/the/private-key.gpg
+
+#secret key used to add transactions to the OBP-API (the OBP-API's importer_secret)
+importer.postSecret=009es9f0jesf09jes0fj
